@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Crewbit",
+    "slug": "crewbit",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "crewbit",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.crewbit.app" },
+    "android": { "package": "com.crewbit.app", "edgeToEdgeEnabled": true },
+    "web": { "bundler": "metro" }
+  }
+}

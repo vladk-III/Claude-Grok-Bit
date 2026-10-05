@@ -1,0 +1,7 @@
+node_modules
+**/node_modules
+web/dist
+mobile/*
+!mobile/package.json
+.env
+.git
