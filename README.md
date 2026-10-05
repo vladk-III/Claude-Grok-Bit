@@ -37,7 +37,7 @@ React Native). Both talk to one small Node server that holds your Anthropic API 
 
 ## Quick start
 
-Requires Node 20+.
+Requires Node 22 or newer.
 
 ```bash
 npm install

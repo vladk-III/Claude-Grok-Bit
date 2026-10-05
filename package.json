@@ -10,7 +10,7 @@
     "mobile"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace server & npm run dev --workspace web",
+    "dev": "concurrently -n server,web -c yellow,cyan \"npm run dev --workspace server\" \"npm run dev --workspace web\"",
     "dev:server": "npm run dev --workspace server",
     "dev:web": "npm run dev --workspace web",
     "build": "npm run build --workspace web",
@@ -22,5 +22,11 @@
   "overrides": {
     "react": "19.2.3",
     "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
