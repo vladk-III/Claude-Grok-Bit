@@ -16,7 +16,7 @@
     "build": "npm run build --workspace web",
     "start": "npm run start --workspace server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspace server",
+    "test": "npm run test --workspace shared",
     "mobile": "npm run start --workspace mobile"
   },
   "overrides": {

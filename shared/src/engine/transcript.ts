@@ -1,8 +1,12 @@
 // Builds the per-agent view of a shared multi-agent conversation.
-import type Anthropic from "@anthropic-ai/sdk";
-import type { Agent, ChatMessage, CrewMode } from "@crewbit/shared";
+import type { Agent, ChatMessage, CrewMode } from "../types";
 
 type Role = "user" | "assistant";
+
+export interface TranscriptTurn {
+  role: Role;
+  content: string;
+}
 
 /**
  * Turn the shared history into a Messages API transcript from one agent's
@@ -14,7 +18,7 @@ type Role = "user" | "assistant";
 export function buildTranscript(
   agent: Agent,
   history: ChatMessage[],
-): Anthropic.Beta.BetaMessageParam[] {
+): TranscriptTurn[] {
   const turns: { role: Role; text: string }[] = [];
 
   for (const msg of history) {

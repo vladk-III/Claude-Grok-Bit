@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { fetch as expoFetch } from "expo/fetch";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { AppState, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { FetchLike } from "@crewbit/shared";
 import { useCrewbit, type KeyValueStorage } from "@crewbit/shared/react";
@@ -22,16 +22,25 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 
 const storage: KeyValueStorage = AsyncStorage;
 // expo/fetch supports streaming response bodies, which the chat stream needs.
-const streamingFetch = expoFetch as unknown as FetchLike;
-const defaultConnection = {
-  serverUrl: process.env.EXPO_PUBLIC_CREWBIT_SERVER_URL ?? "http://localhost:8787",
-  token: "",
-};
+const streamingFetch = ((url, init) => expoFetch(url, init)) as FetchLike;
 
 function Main() {
-  const app = useCrewbit({ storage, fetch: streamingFetch, defaultConnection });
+  const app = useCrewbit({
+    storage,
+    fetch: streamingFetch,
+    defaultRunMode: "direct",
+    defaultServerUrl: process.env.EXPO_PUBLIC_CREWBIT_SERVER_URL ?? "",
+  });
   const [tab, setTab] = useState<Tab>("chat");
   const t = useTheme();
+  const { syncNow, github } = app;
+
+  // Pick up changes made on other devices when the app comes back to the foreground.
+  useEffect(() => {
+    if (!github.enabled) return;
+    const sub = AppState.addEventListener("change", (s) => s === "active" && void syncNow());
+    return () => sub.remove();
+  }, [github.enabled, syncNow]);
 
   if (!app.loaded) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
@@ -39,10 +48,10 @@ function Main() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={["top", "left", "right"]}>
       <StatusBar style="auto" />
       <View style={{ flex: 1 }}>
-        {tab === "chat" && <ChatScreen app={app} />}
+        {tab === "chat" && <ChatScreen app={app} onOpenSettings={() => setTab("settings")} />}
         {tab === "agents" && <AgentsScreen app={app} />}
         {tab === "crews" && <CrewsScreen app={app} />}
-        {tab === "settings" && <SettingsScreen app={app} fetchImpl={streamingFetch} />}
+        {tab === "settings" && <SettingsScreen app={app} />}
       </View>
       <SafeAreaView
         edges={["bottom"]}

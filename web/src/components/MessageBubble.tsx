@@ -28,6 +28,7 @@ export function MessageBubble({
       <div className="msg-body">
         <div className="msg-name" style={{ color }}>
           {message.agentName ?? agent?.name ?? "Agent"}
+          {message.model && <span className="msg-model">{message.model}</span>}
         </div>
         {message.searches && message.searches.length > 0 && (
           <div className="searches">

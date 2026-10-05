@@ -3,8 +3,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    // During development, forward API calls to the Crewbit server.
-    proxy: { "/api": "http://localhost:8787" },
-  },
+  // Relative asset paths, so the app works from GitHub Pages
+  // (https://<user>.github.io/<repo>/) as well as from the optional server.
+  base: "./",
 });

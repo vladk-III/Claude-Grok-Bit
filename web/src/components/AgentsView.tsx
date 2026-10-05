@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MODELS, blankAgent, newId, type Agent, type Effort, type ModelId } from "@crewbit/shared";
+import { CLAUDE_MODELS, blankAgent, listModels, newId, type Agent, type Effort, type Provider } from "@crewbit/shared";
 import type { CrewbitState } from "@crewbit/shared/react";
 
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
@@ -10,6 +10,7 @@ export function AgentsView({ app }: { app: CrewbitState }) {
   if (editing) {
     return (
       <AgentEditor
+        app={app}
         initial={editing}
         isNew={!app.agents.some((a) => a.id === editing.id)}
         onCancel={() => setEditing(null)}
@@ -46,8 +47,8 @@ export function AgentsView({ app }: { app: CrewbitState }) {
               <div className="card-title">{a.name}</div>
               <div className="muted small">{a.tagline || a.systemPrompt.slice(0, 80)}</div>
               <div className="muted small">
-                {MODELS.find((m) => m.id === a.model)?.label ?? a.model} · effort {a.effort}
-                {a.webSearch ? " · web search" : ""}
+                {app.providers.find((p) => p.id === a.provider)?.name ?? "Missing provider"} · {a.model}
+                {a.webSearch && isClaude(app.providers, a) ? " · web search" : ""}
               </div>
             </div>
           </button>
@@ -57,13 +58,19 @@ export function AgentsView({ app }: { app: CrewbitState }) {
   );
 }
 
+function isClaude(providers: Provider[], a: Agent): boolean {
+  return providers.find((p) => p.id === a.provider)?.kind === "anthropic";
+}
+
 function AgentEditor({
+  app,
   initial,
   isNew,
   onSave,
   onCancel,
   onDelete,
 }: {
+  app: CrewbitState;
   initial: Agent;
   isNew: boolean;
   onSave: (a: Agent) => void;
@@ -72,7 +79,23 @@ function AgentEditor({
 }) {
   const [a, setA] = useState(initial);
   const set = <K extends keyof Agent>(k: K, v: Agent[K]) => setA((x) => ({ ...x, [k]: v }));
-  const effortApplies = a.model !== "claude-haiku-4-5";
+  const provider = app.providers.find((p) => p.id === a.provider);
+  const claude = provider?.kind === "anthropic";
+  const effortApplies = claude && a.model !== "claude-haiku-4-5";
+  const [models, setModels] = useState<string[]>([]);
+  const [modelsStatus, setModelsStatus] = useState("");
+
+  const loadModels = async () => {
+    if (!provider) return;
+    setModelsStatus("Loading…");
+    try {
+      const list = await listModels(app.fetch, provider);
+      setModels(list);
+      setModelsStatus(`${list.length} models available - start typing to filter.`);
+    } catch (err) {
+      setModelsStatus(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   return (
     <form
@@ -116,22 +139,65 @@ function AgentEditor({
       </label>
       <div className="row">
         <label className="field">
-          Model
-          <select value={a.model} onChange={(e) => set("model", e.target.value as ModelId)}>
-            {MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
+          Provider
+          <select
+            value={a.provider}
+            onChange={(e) => {
+              const next = app.providers.find((p) => p.id === e.target.value);
+              setModels([]);
+              setModelsStatus("");
+              setA((x) => ({
+                ...x,
+                provider: e.target.value,
+                model: next?.kind === "anthropic" ? CLAUDE_MODELS[0].id : "",
+              }));
+            }}
+          >
+            {!provider && <option value={a.provider}>Missing provider - pick one</option>}
+            {app.providers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>
         </label>
         <label className="field">
-          Effort {effortApplies ? "" : "(not used by Haiku)"}
-          <select
-            value={a.effort}
-            disabled={!effortApplies}
-            onChange={(e) => set("effort", e.target.value as Effort)}
-          >
+          Model
+          {claude ? (
+            <select value={a.model} onChange={(e) => set("model", e.target.value)}>
+              {!CLAUDE_MODELS.some((m) => m.id === a.model) && <option value={a.model}>{a.model}</option>}
+              {CLAUDE_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="inline">
+              <input
+                list="model-list"
+                value={a.model}
+                required
+                placeholder="Model id, e.g. from the provider's docs"
+                onChange={(e) => set("model", e.target.value)}
+              />
+              <button type="button" className="btn" onClick={() => void loadModels()}>
+                Load list
+              </button>
+              <datalist id="model-list">
+                {models.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </span>
+          )}
+          {modelsStatus && <span className="small">{modelsStatus}</span>}
+        </label>
+      </div>
+      {effortApplies && (
+        <label className="field">
+          Effort (how hard it thinks; higher is slower and costs more)
+          <select value={a.effort} onChange={(e) => set("effort", e.target.value as Effort)}>
             {EFFORTS.map((x) => (
               <option key={x} value={x}>
                 {x}
@@ -139,11 +205,15 @@ function AgentEditor({
             ))}
           </select>
         </label>
-      </div>
-      <label className="check">
-        <input type="checkbox" checked={a.webSearch} onChange={(e) => set("webSearch", e.target.checked)} />
-        Allow web search (for current events and fact-checking)
-      </label>
+      )}
+      {claude ? (
+        <label className="check">
+          <input type="checkbox" checked={a.webSearch} onChange={(e) => set("webSearch", e.target.checked)} />
+          Allow web search (for current events and fact-checking)
+        </label>
+      ) : (
+        <p className="note">Web search and thinking effort are available for Claude agents only.</p>
+      )}
       <div className="actions">
         <button type="submit" className="btn primary">
           Save

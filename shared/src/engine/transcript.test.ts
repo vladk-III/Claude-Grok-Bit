@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PRESET_AGENTS, type ChatMessage } from "@crewbit/shared";
+import { PRESET_AGENTS } from "../presets";
+import type { ChatMessage } from "../types";
 import { buildSystemPrompt, buildTranscript } from "./transcript";
 
 const [bit, researcher, skeptic] = PRESET_AGENTS;

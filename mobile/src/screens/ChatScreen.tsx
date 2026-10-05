@@ -17,7 +17,7 @@ import type { CrewbitState } from "@crewbit/shared/react";
 import { Markdown } from "../Markdown";
 import { Button, Chip, useTheme, type Theme } from "../ui";
 
-export function ChatScreen({ app }: { app: CrewbitState }) {
+export function ChatScreen({ app, onOpenSettings }: { app: CrewbitState; onOpenSettings: () => void }) {
   const t = useTheme();
   const [draft, setDraft] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -25,6 +25,14 @@ export function ChatScreen({ app }: { app: CrewbitState }) {
   const messages = app.active?.messages ?? [];
   const agentsById = new Map(app.agents.map((a) => [a.id, a]));
   const lastUserIndex = messages.map((m) => m.role).lastIndexOf("user");
+  const crew = app.activeCrew;
+  const crewAgentIds = new Set([...(crew?.agentIds ?? []), ...(crew?.synthesizerId ? [crew.synthesizerId] : [])]);
+  const missingKeys =
+    app.runMode === "direct"
+      ? app.providers.filter(
+          (p) => !p.apiKey && !p.baseUrl.includes("localhost") && app.agents.some((a) => crewAgentIds.has(a.id) && a.provider === p.id),
+        )
+      : [];
 
   const submit = () => {
     if (!draft.trim() || app.running) return;
@@ -89,6 +97,18 @@ export function ChatScreen({ app }: { app: CrewbitState }) {
         )}
       />
 
+      {missingKeys.length > 0 && (
+        <Pressable onPress={onOpenSettings} style={{ marginHorizontal: 12, padding: 10, borderRadius: 8, backgroundColor: "#f9731620" }}>
+          <Text style={{ color: t.accent }}>
+            Add your API key for {missingKeys.map((p) => p.name).join(", ")} in Settings to start chatting.
+          </Text>
+        </Pressable>
+      )}
+      {app.sync.state === "error" && (
+        <Pressable onPress={() => void app.syncNow()} style={{ marginHorizontal: 12, padding: 8 }}>
+          <Text style={{ color: t.danger, fontSize: 12 }}>⚠️ GitHub sync failed: {app.sync.message} (tap to retry)</Text>
+        </Pressable>
+      )}
       {app.error && (
         <Pressable onPress={app.clearError} style={{ marginHorizontal: 12, padding: 10, borderRadius: 8, backgroundColor: "#ef444420" }}>
           <Text style={{ color: t.danger }}>{app.error}</Text>
@@ -197,7 +217,10 @@ function Bubble({
         <Text style={{ fontSize: 16 }}>{agent?.emoji ?? "🤖"}</Text>
       </View>
       <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ color, fontWeight: "700" }}>{message.agentName ?? agent?.name ?? "Agent"}</Text>
+        <Text style={{ color, fontWeight: "700" }}>
+          {message.agentName ?? agent?.name ?? "Agent"}
+          {message.model ? <Text style={{ color: t.muted, fontWeight: "400", fontSize: 11 }}>  {message.model}</Text> : null}
+        </Text>
         {message.searches?.map((q, i) => (
           <Text key={i} style={{ color: t.muted, fontSize: 12 }}>
             🔎 {q}

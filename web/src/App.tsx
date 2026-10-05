@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FetchLike } from "@crewbit/shared";
 import { useCrewbit, type KeyValueStorage } from "@crewbit/shared/react";
 import { AgentsView } from "./components/AgentsView";
@@ -25,13 +25,20 @@ const storage: KeyValueStorage = {
   },
 };
 const browserFetch = ((url, init) => fetch(url, init)) as FetchLike;
-// Same origin: Vite proxies /api in dev, and the server serves this app in prod.
-const defaultConnection = { serverUrl: "", token: "" };
 
 export default function App() {
-  const app = useCrewbit({ storage, fetch: browserFetch, defaultConnection });
+  const app = useCrewbit({ storage, fetch: browserFetch, defaultRunMode: "direct" });
   const [tab, setTab] = useState<Tab>("chat");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { syncNow, github } = app;
+
+  // Pick up changes made on other devices when coming back to this tab.
+  useEffect(() => {
+    if (!github.enabled) return;
+    const onVisible = () => document.visibilityState === "visible" && void syncNow();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [github.enabled, syncNow]);
 
   if (!app.loaded) return null;
 
@@ -80,6 +87,15 @@ export default function App() {
             </div>
           ))}
         </nav>
+        {app.sync.state !== "off" && (
+          <button
+            className={`sync-status ${app.sync.state}`}
+            title={app.sync.message ?? "Sync with GitHub now"}
+            onClick={() => void app.syncNow()}
+          >
+            {app.sync.state === "syncing" ? "⟳ Syncing…" : app.sync.state === "error" ? "⚠️ Sync failed" : "✓ Synced to GitHub"}
+          </button>
+        )}
         <div className="side-nav">
           <button className={tab === "agents" ? "active" : ""} onClick={() => go("agents")}>
             🤖 Agents
@@ -103,7 +119,7 @@ export default function App() {
             {tab === "chat" ? app.active?.title ?? "New chat" : tab[0].toUpperCase() + tab.slice(1)}
           </span>
         </header>
-        {tab === "chat" && <ChatView app={app} />}
+        {tab === "chat" && <ChatView app={app} onOpenSettings={() => go("settings")} />}
         {tab === "agents" && <AgentsView app={app} />}
         {tab === "crews" && <CrewsView app={app} />}
         {tab === "settings" && <SettingsView app={app} />}

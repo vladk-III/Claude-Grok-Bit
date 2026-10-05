@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { MODELS, type RunRequest } from "@crewbit/shared";
-
-const modelIds = MODELS.map((m) => m.id) as [string, ...string[]];
+import type { RunRequest } from "@crewbit/shared";
 
 const agent = z.object({
   id: z.string().min(1).max(100),
@@ -10,9 +8,18 @@ const agent = z.object({
   color: z.string().max(32),
   tagline: z.string().max(200),
   systemPrompt: z.string().max(20_000),
-  model: z.enum(modelIds),
+  provider: z.string().min(1).max(100),
+  model: z.string().min(1).max(200),
   effort: z.enum(["low", "medium", "high", "xhigh", "max"]),
   webSearch: z.boolean(),
+});
+
+const provider = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().max(100),
+  kind: z.enum(["anthropic", "openai-compatible"]),
+  baseUrl: z.string().max(500),
+  apiKey: z.string().max(500),
 });
 
 const message = z.object({
@@ -20,16 +27,20 @@ const message = z.object({
   role: z.enum(["user", "agent"]),
   agentId: z.string().max(100).optional(),
   agentName: z.string().max(60).optional(),
+  model: z.string().max(200).optional(),
   text: z.string().max(200_000),
   thinking: z.string().optional(),
   searches: z.array(z.string()).optional(),
   error: z.string().optional(),
+  inputTokens: z.number().optional(),
+  outputTokens: z.number().optional(),
   createdAt: z.number(),
 });
 
 export const runRequestSchema = z
   .object({
     agents: z.array(agent).min(1).max(12),
+    providers: z.array(provider).max(20),
     crew: z.object({
       agentIds: z.array(z.string()).min(1).max(8),
       mode: z.enum(["parallel", "relay", "roundtable"]),
@@ -44,10 +55,7 @@ export const runRequestSchema = z
   .refine(
     (r) => {
       const ids = new Set(r.agents.map((a) => a.id));
-      return (
-        r.crew.agentIds.every((id) => ids.has(id)) &&
-        (!r.crew.synthesizerId || ids.has(r.crew.synthesizerId))
-      );
+      return r.crew.agentIds.every((id) => ids.has(id)) && (!r.crew.synthesizerId || ids.has(r.crew.synthesizerId));
     },
     { message: "crew references an agent that was not sent" },
   ) as unknown as z.ZodType<RunRequest>;

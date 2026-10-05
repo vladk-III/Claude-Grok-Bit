@@ -4,7 +4,7 @@ import { MessageBubble } from "./MessageBubble";
 
 const MODE_LABEL = { parallel: "all at once", relay: "in turn", roundtable: "roundtable" } as const;
 
-export function ChatView({ app }: { app: CrewbitState }) {
+export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSettings: () => void }) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messages = app.active?.messages ?? [];
@@ -12,6 +12,14 @@ export function ChatView({ app }: { app: CrewbitState }) {
   const agentsById = new Map(app.agents.map((a) => [a.id, a]));
   // Agent replies after the latest user message belong to the run in progress.
   const lastUserIndex = messages.map((m) => m.role).lastIndexOf("user");
+  // Providers this crew needs that have no API key yet (direct mode only).
+  const crewAgentIds = new Set([...(crew?.agentIds ?? []), ...(crew?.synthesizerId ? [crew.synthesizerId] : [])]);
+  const missingKeys =
+    app.runMode === "direct"
+      ? app.providers.filter(
+          (p) => !p.apiKey && p.baseUrl.indexOf("localhost") === -1 && app.agents.some((a) => crewAgentIds.has(a.id) && a.provider === p.id),
+        )
+      : [];
 
   // Keep the newest message in view while streaming.
   useEffect(() => {
@@ -88,6 +96,12 @@ export function ChatView({ app }: { app: CrewbitState }) {
           </div>
         )}
       </div>
+
+      {missingKeys.length > 0 && (
+        <div className="banner warn" onClick={onOpenSettings}>
+          Add your API key for {missingKeys.map((p) => p.name).join(", ")} in <u>Settings</u> to start chatting.
+        </div>
+      )}
 
       {app.error && (
         <div className="banner error" onClick={app.clearError}>

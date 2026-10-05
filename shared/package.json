@@ -10,13 +10,19 @@
     "./react": "./src/react.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts"
   },
   "peerDependencies": {
     "react": "19.2.3"
   },
   "devDependencies": {
     "@types/react": "~19.2.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "tsx": "^4.23.0",
+    "@types/node": "^22.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
   }
 }
