@@ -57,23 +57,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Main */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.topbar {
-  display: none; align-items: center; gap: 10px; padding: 10px 16px;
-  border-bottom: 1px solid var(--border); background: var(--panel);
-}
-.topbar-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scrim { display: none; }
-
-@media (max-width: 760px) {
-  .sidebar {
-    position: fixed; inset: 0 auto 0 0; z-index: 20; transform: translateX(-100%);
-    transition: transform 0.2s ease;
-  }
-  .sidebar.open { transform: none; }
-  .scrim { display: block; position: fixed; inset: 0; background: rgb(0 0 0 / 0.5); z-index: 10; }
-  .topbar { display: flex; }
-}
-
 /* Buttons */
 .btn {
   border: 1px solid var(--border); background: var(--panel-2); padding: 8px 14px;
@@ -95,7 +78,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px;
   border-bottom: 1px solid var(--border);
 }
-.crew-bar select, .field input, .field select, .field textarea {
+.crew-bar select, .field input, .field select, .field textarea, .section select {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
 }
 .crew-members { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -208,5 +191,102 @@ hr { border: 0; border-top: 1px solid var(--border); width: 100%; }
 .note.warn { color: var(--accent); }
 .note.danger { color: var(--danger); }
 .inline { display: flex; gap: 8px; align-items: center; }
-.inline > input, .inline > select { flex: 1; }
+.inline > input, .inline > select { flex: 1; min-width: 0; }
 .field a { color: var(--accent); }
+
+/* ------------------------------------------------------------------------ */
+/* Phone layout (MobileShell)                                                */
+
+.m-app {
+  height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.m-header {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  padding: calc(6px + env(safe-area-inset-top)) 8px 6px; min-height: 52px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.m-title {
+  flex: 1; margin: 0 6px; font-size: 1.05rem; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-brand { color: var(--accent); font-size: 1.3rem; padding: 0 8px; }
+.m-icon {
+  width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0;
+  background: none; border: 0; border-radius: 10px; font-size: 1.35rem; color: var(--text); cursor: pointer;
+}
+.m-icon:active { background: var(--panel-2); }
+.m-icon.accent { color: var(--accent); font-size: 1.6rem; }
+.m-text-btn { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 1rem; padding: 10px 12px; }
+.sync-status.compact { border: 0; padding: 8px; font-size: 1rem; }
+
+.m-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+
+.m-tabs {
+  display: flex; flex-shrink: 0; background: var(--panel); border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.m-tabs button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 0 6px; background: none; border: 0; color: var(--muted); font-size: 0.72rem; cursor: pointer;
+}
+.m-tabs button.active { color: var(--accent); }
+.m-tab-icon { font-size: 1.3rem; filter: grayscale(1); opacity: 0.7; }
+.m-tabs button.active .m-tab-icon { filter: none; opacity: 1; }
+
+/* Crew chips that scroll sideways */
+.m-crews {
+  display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border); scrollbar-width: none;
+}
+.m-crews::-webkit-scrollbar { display: none; }
+.m-crew {
+  flex-shrink: 0; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--panel-2); font-size: 0.9rem; white-space: nowrap; cursor: pointer;
+}
+.m-crew.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Chat list sheet */
+.m-sheet {
+  position: fixed; inset: 0; z-index: 30; background: var(--bg); display: flex; flex-direction: column;
+  animation: m-slide-up 0.18s ease-out;
+}
+@keyframes m-slide-up { from { transform: translateY(24px); opacity: 0; } }
+.m-wide { margin: 12px; }
+.m-list { flex: 1; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom); }
+.m-pad { padding: 0 16px; }
+.m-list-item { display: flex; align-items: center; border-bottom: 1px solid var(--border); }
+.m-list-item.active { background: var(--panel-2); }
+.m-list-main {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 16px; background: none; border: 0; text-align: left; cursor: pointer;
+}
+.m-list-title { font-size: 1rem; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Shared screens, tuned for phones */
+.m-app .chat { min-height: 0; }
+.m-app .messages { padding: 14px 12px; gap: 16px; }
+.m-app .msg.user .bubble { max-width: 85%; }
+.m-app .avatar { width: 30px; height: 30px; font-size: 0.95rem; }
+.m-app .msg.agent { gap: 10px; }
+.m-app .composer { padding: 8px 10px; }
+.m-app .composer textarea { font-size: 16px; } /* 16px stops iOS zooming in on focus */
+.m-app .banner { margin: 0 10px 4px; }
+.m-app .page { padding: 14px 12px calc(14px + env(safe-area-inset-bottom)); }
+.m-app .page-head { flex-direction: column; align-items: stretch; gap: 10px; }
+.m-app .page-head .btn { padding: 12px; }
+.m-app .cards { grid-template-columns: 1fr; gap: 10px; }
+.m-app .field input, .m-app .field select, .m-app .field textarea, .m-app .section select { font-size: 16px; padding: 10px 12px; }
+.m-app .row { flex-direction: column; gap: 14px; }
+.m-app .row .field, .m-app .field.narrow { flex: 1 1 auto; min-width: 0; }
+.m-app .actions .btn { flex: 1; padding: 12px; }
+.m-app .actions .push { margin-left: 0; flex-basis: 100%; }
+.m-app .section { padding: 14px; }
+.m-app .provider-row { flex-wrap: wrap; }
+.m-app .member-row .icon-btn { padding: 8px 10px; }
+.m-app .check { padding: 8px 0; }
+.m-app .crew-members { gap: 8px; }
+.m-app .chip.add { padding: 6px 12px; }
+.m-app .row:has(.narrow) { flex-direction: row; gap: 10px; }
+.m-app .row:has(.narrow) .field.narrow { flex: 0 0 64px; }
+.m-app .row:has(.narrow) .field:not(.narrow) { flex: 1; }

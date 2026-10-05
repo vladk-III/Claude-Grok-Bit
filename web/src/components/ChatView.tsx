@@ -4,9 +4,20 @@ import { MessageBubble } from "./MessageBubble";
 
 const MODE_LABEL = { parallel: "all at once", relay: "in turn", roundtable: "roundtable" } as const;
 
-export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSettings: () => void }) {
+export function ChatView({
+  app,
+  onOpenSettings,
+  variant = "desktop",
+  onTypingChange,
+}: {
+  app: CrewbitState;
+  onOpenSettings: () => void;
+  variant?: "desktop" | "mobile";
+  onTypingChange?: (typing: boolean) => void;
+}) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messages = app.active?.messages ?? [];
   const crew = app.activeCrew;
   const agentsById = new Map(app.agents.map((a) => [a.id, a]));
@@ -31,6 +42,8 @@ export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSet
     if (!draft.trim() || app.running) return;
     void app.send(draft);
     setDraft("");
+    // On phones, close the keyboard so the reply has the whole screen.
+    if (variant === "mobile") inputRef.current?.blur();
   };
 
   const pickCrew = (crewId: string) => {
@@ -40,6 +53,21 @@ export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSet
 
   return (
     <div className="chat">
+      {variant === "mobile" ? (
+        <div className="m-crews" role="tablist" aria-label="Crew">
+          {app.crews.map((c) => (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={c.id === crew?.id}
+              className={`m-crew ${c.id === crew?.id ? "active" : ""}`}
+              onClick={() => pickCrew(c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      ) : (
       <div className="crew-bar">
         <label className="muted small">Crew</label>
         <select value={crew?.id ?? ""} onChange={(e) => pickCrew(e.target.value)}>
@@ -68,6 +96,7 @@ export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSet
           </span>
         )}
       </div>
+      )}
 
       <div className="messages" ref={scrollRef}>
         {messages.length === 0 && (
@@ -117,10 +146,14 @@ export function ChatView({ app, onOpenSettings }: { app: CrewbitState; onOpenSet
         }}
       >
         <textarea
+          ref={inputRef}
           value={draft}
           rows={1}
           placeholder={`Message ${crew?.name ?? "Crewbit"}…`}
           onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => onTypingChange?.(true)}
+          onBlur={() => onTypingChange?.(false)}
+          enterKeyHint={variant === "mobile" ? "send" : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
